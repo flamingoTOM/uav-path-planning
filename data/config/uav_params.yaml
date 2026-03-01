@@ -1,0 +1,47 @@
+# 无人机参数配置
+
+# 固定翼无人机
+fixed_wing:
+  # 物理参数
+  mass: 5.0  # 质量（kg）
+  wing_span: 2.0  # 翼展（m）
+  wing_area: 0.5  # 机翼面积（m²）
+
+  # 性能参数
+  max_speed: 25.0  # 最大速度（m/s）
+  min_speed: 10.0  # 最小速度（m/s）
+  cruise_speed: 15.0  # 巡航速度（m/s）
+  max_climb_rate: 5.0  # 最大爬升率（m/s）
+  max_descent_rate: 3.0  # 最大下降率（m/s）
+  max_turn_rate: 30.0  # 最大转弯率（度/s）
+  min_turn_radius: 50.0  # 最小转弯半径（m）
+
+  # 控制限制
+  max_bank_angle: 45.0  # 最大倾斜角（度）
+  max_pitch_angle: 20.0  # 最大俯仰角（度）
+  max_roll_rate: 60.0  # 最大滚转率（度/s）
+  max_pitch_rate: 30.0  # 最大俯仰率（度/s）
+  max_yaw_rate: 30.0  # 最大偏航率（度/s）
+
+# 多旋翼无人机
+multi_rotor:
+  # 物理参数
+  mass: 2.0  # 质量（kg）
+  rotor_count: 4  # 旋翼数量
+
+  # 性能参数
+  max_speed: 15.0  # 最大速度（m/s）
+  max_vertical_speed: 5.0  # 最大垂直速度（m/s）
+  max_acceleration: 5.0  # 最大加速度（m/s²）
+  hover_throttle: 0.5  # 悬停油门
+
+  # 控制限制
+  max_tilt_angle: 30.0  # 最大倾斜角（度）
+  max_angular_velocity: 200.0  # 最大角速度（度/s）
+
+# 电池参数
+battery:
+  capacity: 5000  # 容量（mAh）
+  voltage: 22.2  # 电压（V）
+  discharge_rate: 30  # 放电倍率（C）
+  endurance: 1800  # 续航时间（秒）

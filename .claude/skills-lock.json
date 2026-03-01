@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "skills": {
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "computedHash": "25872a21881a950edc3db1f3329664d60405d539660ce05b3265db2de06a7dfd"
+    },
+    "data-visualization": {
+      "source": "inference-sh-9/skills",
+      "sourceType": "github",
+      "computedHash": "f0bef6cfb0df4e435cf4b9bbbaca69cff72a560a02b252ea70448acf9da4e705"
+    },
+    "matplotlib": {
+      "source": "davila7/claude-code-templates",
+      "sourceType": "github",
+      "computedHash": "206e2cc92ab1d717e1ccb42a97ed7790ac22ade62a9ae4eaa2f260b304b5ea2f"
+    },
+    "pdf": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "computedHash": "4f31832000f84a2665024c79222bcf19ee79920871dd725e3cbbe4fe0852653a"
+    },
+    "research": {
+      "source": "tavily-ai/skills",
+      "sourceType": "github",
+      "computedHash": "05d06134498de6cdbf3a0bcb9fc465b96f9638ef266968cbb87ef272afa3b401"
+    }
+  }
+}

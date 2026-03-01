@@ -1,0 +1,35 @@
+# 路径规划器配置文件
+
+# 随机碰撞覆盖法
+random_bounce:
+  max_iterations: 10000  # 最大迭代次数
+  bounce_angle_range: [-30, 30]  # 碰撞后转向角度范围（度）
+  step_size: 1.0  # 步长（米）
+  coverage_threshold: 0.95  # 覆盖率阈值
+
+# 牛耕式覆盖法
+boustrophedon:
+  sweep_direction: "horizontal"  # 扫掠方向: horizontal/vertical
+  line_spacing: 5.0  # 航线间距（米）
+  overlap: 0.1  # 重叠率 [0, 1]
+  turn_radius: 10.0  # 转弯半径（米）
+
+# 螺旋式覆盖法
+spiral:
+  start_radius: 5.0  # 起始半径（米）
+  radius_increment: 5.0  # 半径增量（米）
+  angular_resolution: 10  # 角度分辨率（度）
+
+# 仿地飞行全覆盖规划
+terrain_following_coverage:
+  min_altitude: 50.0  # 最小飞行高度（米）
+  max_altitude: 200.0  # 最大飞行高度（米）
+  safety_margin: 20.0  # 安全裕度（米）
+  line_spacing: 30.0  # 航线间距（米）
+  max_slope: 30.0  # 最大爬升角度（度）
+
+# A* 算法
+a_star:
+  heuristic: "euclidean"  # 启发函数: euclidean/manhattan/chebyshev
+  allow_diagonal: true  # 是否允许对角移动
+  weight: 1.0  # 启发函数权重

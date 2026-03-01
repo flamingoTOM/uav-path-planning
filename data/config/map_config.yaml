@@ -1,0 +1,29 @@
+# 地图配置文件
+
+# 2D 栅格地图配置
+grid_2d:
+  bounds:
+    x: [0, 100]  # x 范围（米）
+    y: [0, 50]   # y 范围（米）
+  resolution: 1.0  # 分辨率（米/格）
+  inflation_radius: 2.0  # 障碍膨胀半径（米）
+
+# 3D 地形地图配置
+terrain_3d:
+  bounds:
+    x: [0, 1000]  # x 范围（米）
+    y: [0, 1000]  # y 范围（米）
+    z: [0, 500]   # z 范围（米）
+  resolution: 5.0  # 水平分辨率（米/格）
+  height_resolution: 1.0  # 高度分辨率（米）
+  dem_source: "SRTM"  # DEM 数据源
+
+# 山地地形配置
+mountain_terrain:
+  bounds:
+    x: [0, 500]
+    y: [0, 500]
+    z: [0, 300]
+  resolution: 2.0
+  terrain_type: "mountain"
+  roughness: 0.5  # 地形粗糙度 [0, 1]

@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx skills:*)",
+      "Bash(python:*)",
+      "Bash(pip install:*)",
+      "Bash(cp:*)",
+      "Bash(find . -type f -exec sha256sum {} ;)",
+      "Bash(find /c/Users/xiaoyu.liu/Desktop/my_project/ws/.claude/skills/matplotlib -type f -exec sha256sum {} ;)",
+      "Bash(find /c/Users/xiaoyu.liu/Desktop/my_project/ws/.claude/skills/pdf -type f -exec sha256sum {} ;)",
+      "Bash(find /c/Users/xiaoyu.liu/Desktop/my_project/ws/.claude/skills/research -type f -exec sha256sum {} ;)",
+      "Bash(python3:*)",
+      "WebSearch",
+      "Bash(cat:*)",
+      "Bash(PYTHONPATH=. python:*)",
+      "Bash(PYTHONPATH=. PYTHONIOENCODING=utf-8 python:*)",
+      "Bash(PYTHONPATH=.. PYTHONIOENCODING=utf-8 python:*)",
+      "Bash(ls:*)",
+      "Bash(git init:*)",
+      "Bash(git config:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}
