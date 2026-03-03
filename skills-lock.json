@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "setup-statusline": {
+      "source": "mcp-hub.momenta.works",
+      "sourceType": "well-known",
+      "computedHash": "e4a62e9720d374db07037573a93229f979fee20af08e902aa54e9925ff3b604f"
+    }
+  }
+}

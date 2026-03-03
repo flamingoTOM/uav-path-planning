@@ -1,0 +1,76 @@
+#!/bin/bash
+
+# Momenta API Balance Checker for Statusline
+# Shows API token balance/usage in statusline
+
+USERNAME="{{USERNAME}}"
+PASSWORD="{{PASSWORD}}"
+LOGIN_URL="https://abp.momenta.works/auth/api/v1/user/login"
+API_URL="https://abp.momenta.works/mdify/api/v1/api-key"
+
+# Token cache to avoid frequent logins
+CACHE_FILE="/tmp/momenta_token_cache"
+TOKEN=""
+
+# Check if cached token exists and is not expired (10 minutes)
+if [ -f "$CACHE_FILE" ]; then
+    if [ $(($(date +%s) - $(stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0))) -lt 600 ]; then
+        TOKEN=$(cat "$CACHE_FILE")
+    fi
+fi
+
+# Login if no valid token
+if [ -z "$TOKEN" ]; then
+    TOKEN=$(curl -s -X POST "$LOGIN_URL" \
+        -H "Content-Type: application/x-www-form-urlencoded" \
+        -d "username=${USERNAME}&password=${PASSWORD}" 2>/dev/null | \
+        grep -o '"token":"[^"]*"' | cut -d'"' -f4)
+
+    if [ -n "$TOKEN" ]; then
+        echo "$TOKEN" > "$CACHE_FILE" 2>/dev/null
+    fi
+fi
+
+if [ -z "$TOKEN" ]; then
+    echo ""
+    exit 0
+fi
+
+# Get API key data - KEY: use "Authorization: ${TOKEN}" not "Bearer ${TOKEN}"
+DATA=$(curl -s "$API_URL" -H "Authorization: ${TOKEN}" 2>/dev/null)
+
+# Parse spend and max_budget - compatible with both response formats
+# Format 1 (Windows): {"data":{"key":{"spend":283.7,"max_budget":800}}}
+# Format 2 (Linux): {"spend":283.7,"max_budget":800}
+
+# Try new format first (data.key.spend)
+if command -v jq >/dev/null 2>&1; then
+    # Use jq if available (more reliable)
+    spend=$(echo "$DATA" | jq -r '.data.key.spend // empty' 2>/dev/null)
+    max_budget=$(echo "$DATA" | jq -r '.data.key.max_budget // empty' 2>/dev/null)
+
+    # Fallback to old format if empty
+    if [ -z "$spend" ] || [ -z "$max_budget" ]; then
+        spend=$(echo "$DATA" | jq -r '.spend // empty' 2>/dev/null)
+        max_budget=$(echo "$DATA" | jq -r '.max_budget // empty' 2>/dev/null)
+    fi
+else
+    # Fallback to grep if jq not available
+    spend=$(echo "$DATA" | grep -o '"spend":[0-9.]*' | cut -d':' -f2 | tail -1)
+    max_budget=$(echo "$DATA" | grep -o '"max_budget":[0-9.]*' | cut -d':' -f2 | tail -1)
+fi
+
+if [ -n "$spend" ] && [ -n "$max_budget" ]; then
+    # Calculate percentage and spent amount
+    percentage=$(awk "BEGIN {printf \"%.1f\", ($spend / $max_budget) * 100}")
+    spend_int=$(awk "BEGIN {printf \"%.0f\", $spend}")
+    max_budget_int=$(awk "BEGIN {printf \"%.0f\", $max_budget}")
+
+    # Output format: spent/total (percentage%)
+    # Example: 249/800 (31.1%)
+    printf "${spend_int}/${max_budget_int}(${percentage}%%)"
+else
+    # If token expired, remove cache and return empty
+    rm -f "$CACHE_FILE" 2>/dev/null
+    echo ""
+fi

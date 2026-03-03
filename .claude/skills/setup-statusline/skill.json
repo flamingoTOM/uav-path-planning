@@ -1,0 +1,42 @@
+{
+  "name": "setup-statusline",
+  "version": "2.0.0",
+  "description": "Customizable Claude Code statusline - choose components and order",
+  "author": "yannan.guo",
+  "triggers": [
+    "setup statusline",
+    "configure statusline",
+    "install statusline",
+    "setup status line",
+    "configure status bar"
+  ],
+  "category": "configuration",
+  "requires_user_input": true,
+  "customizable": true,
+  "components": [
+    "Model Name",
+    "Context Bar",
+    "Token Stats",
+    "Momenta Balance",
+    "Git Branch",
+    "Current Directory",
+    "Runtime"
+  ],
+  "files": [
+    "README.md",
+    "statusline-command.sh.template",
+    "check-momenta-token.sh.template"
+  ],
+  "creates": [
+    "~/.claude/statusline-command.sh (customized based on selections)",
+    "~/.claude/settings.json (updates)",
+    "~/.claude/scripts/check-momenta-token.sh (only if Momenta Balance selected)",
+    "~/.claude/momenta-config.json (optional, only if Momenta Balance selected)"
+  ],
+  "dependencies": [
+    "jq",
+    "curl",
+    "git",
+    "bash"
+  ]
+}

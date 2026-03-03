@@ -1,0 +1,146 @@
+#!/bin/bash
+
+# Read JSON input from stdin
+input=$(cat)
+
+# Extract information
+model_name=$(echo "$input" | jq -r '.model.display_name')
+total_input=$(echo "$input" | jq -r '.context_window.total_input_tokens')
+total_output=$(echo "$input" | jq -r '.context_window.total_output_tokens')
+context_size=$(echo "$input" | jq -r '.context_window.context_window_size')
+used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
+cwd=$(echo "$input" | jq -r '.workspace.current_dir')
+
+# Calculate total tokens used
+total_used=$((total_input + total_output))
+
+# ANSI color codes
+CYAN='\033[96m'
+GREEN='\033[92m'
+YELLOW='\033[93m'
+RED='\033[91m'
+BLUE='\033[94m'
+MAGENTA='\033[95m'
+GRAY='\033[90m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+# Format numbers with comma separator
+format_number() {
+    printf "%'d" "$1" 2>/dev/null || echo "$1"
+}
+
+# Get progress bar based on percentage
+get_progress_bar() {
+    local pct=$1
+    local width=10
+    local filled=$((pct * width / 100))
+    local empty=$((width - filled))
+
+    local bar=""
+    for ((i=0; i<filled; i++)); do
+        bar+="█"
+    done
+    for ((i=0; i<empty; i++)); do
+        bar+="░"
+    done
+    echo "$bar"
+}
+
+# Choose color based on usage percentage
+get_color_by_usage() {
+    local pct=$1
+    if [ "$pct" -lt 50 ]; then
+        printf "%s" "$GREEN"
+    elif [ "$pct" -lt 75 ]; then
+        printf "%s" "$YELLOW"
+    else
+        printf "%s" "$RED"
+    fi
+}
+
+# Build status line
+status=""
+
+# 1. Model name (first)
+status+="${CYAN}[${model_name}]${RESET}"
+
+# 2. Context window usage
+if [ -n "$used_pct" ]; then
+    bar=$(get_progress_bar "$used_pct")
+    color=$(get_color_by_usage "$used_pct")
+    status+=" ${color}${bar} ${used_pct}%${RESET}"
+else
+    status+=" ${CYAN}Context${RESET}"
+fi
+
+# 3. Input/Output breakdown
+status+=" ${GRAY}│${RESET} ${BLUE}⬇ $(format_number $total_input)${RESET} ${MAGENTA}⬆ $(format_number $total_output)${RESET}"
+
+# 4. Momenta API Token Balance
+if [ -f "$HOME/.claude/scripts/check-momenta-token.sh" ]; then
+    token_balance=$(timeout 5s bash "$HOME/.claude/scripts/check-momenta-token.sh" 2>/dev/null || echo "")
+    if [ -n "$token_balance" ] && [ "$token_balance" != "N/A" ] && [ "$token_balance" != "..." ]; then
+        status+=" ${GRAY}│${RESET} ${YELLOW}💰 ${token_balance}${RESET}"
+    fi
+fi
+
+# 5. Git branch (if in a git repo)
+if [ -d "$cwd/.git" ] || git -C "$cwd" rev-parse --git-dir > /dev/null 2>&1; then
+    branch=$(git -C "$cwd" --no-optional-locks branch --show-current 2>/dev/null || echo "detached")
+    status+=" ${GRAY}│${RESET} ${CYAN}${branch}${RESET}"
+fi
+
+# 6. Runtime (session duration)
+# Normalize path for consistent hashing (convert to lowercase)
+cwd=$(echo "$input" | jq -r '.workspace.current_dir')
+normalized_cwd=$(echo "$cwd" | tr '[:upper:]' '[:lower:]')
+PROJECT_HASH=$(echo "$normalized_cwd" | md5sum 2>/dev/null | cut -d' ' -f1 || echo "unknown")
+
+# Hybrid session detection: Terminal ID + session_id
+# Try terminal-specific env vars (ordered by popularity):
+# 1. WT_SESSION (Windows Terminal) 2. WINDOWID (X11/Linux) 3. TMUX_PANE (tmux)
+# session_id: precise detection for /clear command
+# Use PPID (parent process ID) instead of $$ to maintain stable ID across script invocations
+TERMINAL_ID=$(echo "${WT_SESSION:-${WINDOWID:-${TMUX_PANE:-fallback_${PPID}}}}" | md5sum 2>/dev/null | cut -d' ' -f1 | cut -c1-8)
+RUNTIME_FILE="$HOME/.claude/runtime_${PROJECT_HASH}_${TERMINAL_ID}_start"
+SESSION_FILE="$HOME/.claude/runtime_${PROJECT_HASH}_${TERMINAL_ID}_session"
+
+current_time=$(date +%s)
+
+# Get current session_id from history.jsonl
+current_session=$(tail -1 "$HOME/.claude/history.jsonl" 2>/dev/null | jq -r '.sessionId // empty')
+
+if [ -n "$current_session" ]; then
+    last_session=$(cat "$SESSION_FILE" 2>/dev/null || echo "")
+
+    # If session_id changed → new session (e.g., /clear) → reset timer
+    if [ "$current_session" != "$last_session" ]; then
+        echo "$current_time" > "$RUNTIME_FILE"
+        echo "$current_session" > "$SESSION_FILE"
+    fi
+else
+    # Fallback: if can't read session_id, use file existence (new terminal)
+    if [ ! -f "$RUNTIME_FILE" ]; then
+        echo "$current_time" > "$RUNTIME_FILE"
+    fi
+fi
+
+start_time=$(cat "$RUNTIME_FILE" 2>/dev/null || echo "$current_time")
+runtime=$((current_time - start_time))
+
+# Format: hours, minutes, or seconds
+hours=$((runtime / 3600))
+minutes=$(((runtime % 3600) / 60))
+seconds=$((runtime % 60))
+
+if [ $hours -gt 0 ]; then
+    runtime_str="${hours}h ${minutes}m"
+elif [ $minutes -gt 0 ]; then
+    runtime_str="${minutes}m"
+else
+    runtime_str="${seconds}s"
+fi
+status+=" ${GRAY}│${RESET} ${MAGENTA}🕐 ${runtime_str}${RESET}"
+
+echo -e "$status"
