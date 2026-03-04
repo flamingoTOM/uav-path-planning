@@ -1,11 +1,6 @@
 {
   "version": 1,
   "skills": {
-    "implement-design": {
-      "source": "figma/mcp-server-guide",
-      "sourceType": "github",
-      "computedHash": "266fce66297f9ea6156dd3526e9270e1d3e6099d17176dd4babdbaa2fc899b06"
-    },
     "setup-statusline": {
       "source": "mcp-hub.momenta.works",
       "sourceType": "well-known",
