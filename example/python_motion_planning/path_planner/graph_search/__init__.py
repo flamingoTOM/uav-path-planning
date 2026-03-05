@@ -3,3 +3,4 @@ from .a_star import *
 from .theta_star import *
 from .jps import *
 from .random_collision import *
+from .hybrid_a_star import *
