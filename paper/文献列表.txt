@@ -1,0 +1,19 @@
+[4]	Ajeil F H, Ibraheem I K, Azar A T, et al.Grid-Based Mobile Robot Path Planning UsingAging-Based Ant Colony Optimization Algorithm in Static and Dynamic Environm-ents[J].Sensors(S0921-8890),2020,20(7):1880.
+[5]	Hart P E, Nilsson N J, Raphael B. A formal basis for the heuristic determination of minimum cost paths[J]. IEEE transactions on Systems Science and Cybernetics, 1968, 4(2): 100-107.
+[6]	Dijkstra E W. A note on two problems in connexion with graphs[J]. Numerische Mathematik, 1959, 1(1): 269–271.
+[7]	Hart P E, Nilsson N J, Raphael B. A Formal Basis for the Heuristic Determination of Minimum Cost Paths[J]. IEEE Transactions on Systems Science and Cybernetics, 1968, 4(2): 100–107.
+[8]	Nash A, Koenig S, Tovey C. Theta*: Any-Angle Path Planning on Grids[C]// Proceedings of the AAAI Conference on Artificial Intelligence (AAAI). 2010.
+[9]	Harabor D, Grastien A. Online Graph Pruning for Pathfinding on Grid Maps[C]// Proceedings of the AAAI Conference on Artificial Intelligence (AAAI). 2011.
+[10]	Kavraki L E, Švestka P, Latombe J C, Overmars M H. Probabilistic Roadmaps for Path Planning in High-Dimensional Configuration Spaces[J]. IEEE Transactions on Robotics and Automation, 1996, 12(4): 566–580.
+[11]	LaValle S M. Rapidly-Exploring Random Trees: A New Tool for Path Planning[R]. Iowa City, IA: Computer Science Department, Iowa State University, 1998.
+[12]	Karaman S, Frazzoli E. Sampling-based Algorithms for Optimal Motion Planning[J]. The International Journal of Robotics Research, 2011, 30(7): 846–894.
+[13]	 Choset H. Coverage of Known Spaces: The Boustrophedon Cellular Decomposition[J]. Autonomous Robots, 2001, 9(3): 247–253.
+[14]	 Choset H. Coverage for Robotics—A Survey of Recent Results[J]. Annals of Mathematics and Artificial Intelligence, 2001, 31(1–4): 113–126.
+[15]	Gabriely Y, Rimon E. Spanning-Tree Based Coverage of Continuous Areas by a Mobile Robot[J]. Annals of Mathematics and Artificial Intelligence, 2003, 37(1–2): 77–98.
+[16]	Wu, W., Wang, Z., Lin, L. et al. An efficient coverage path planning method for UAV in complex concave regions. Sci Rep 15, 37227 (2025). 
+[17]	Z.L. Cao, Y. Huang, E.L. Hall, Region filling operations with random obstacle avoidance for mobile robotics, Journal of Robotic Systems 5 (2) (1988) 87–102.
+[18]	Galceran E, Carreras M. A survey on coverage path planning for robotics[J]. Robotics and Autonomous Systems, 2013, 61(12): 1258-1276.
+[19]	Liu S, Mohta K, Atanasov N, et al. Planning Dynamically Feasible Trajectories for Quadrotors Using Safe Flight Corridors in 3D Complex Environments[C]//ICRA, 2017.
+
+[20]	Gao F, Lin Y, Shen S. Online Safe Trajectory Generation for Quadrotors Using B-splines[C]// IEEE International Conference on Robotics and Automation (ICRA). 2018.
+[21]	Zhou B, Gao F, Wang L, Liu C, Shen S. EGO-Planner: An ESDF-free Gradient-based Local Planner for Quadrotors[C]// IEEE/RSJ International Conference on Intelligent Robots and Systems (IROS). 2020.
