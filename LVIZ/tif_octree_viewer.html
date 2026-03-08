@@ -1,0 +1,995 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>DSM 八叉树地图可视化</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #0d1117;
+  color: #c9d1d9;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── 顶栏 ── */
+#topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 6px 12px;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  flex-shrink: 0;
+  min-height: 38px;
+}
+#topbar h1 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #58a6ff;
+  white-space: nowrap;
+}
+#topbar .sep { flex: 1; }
+#status-bar {
+  font-size: 11px;
+  color: #8b949e;
+  white-space: nowrap;
+}
+#loading-badge {
+  display: none;
+  padding: 2px 8px;
+  background: #1f6feb;
+  border-radius: 20px;
+  font-size: 11px;
+  color: #fff;
+  animation: pulse 1s ease-in-out infinite alternate;
+}
+@keyframes pulse { from { opacity: .7; } to { opacity: 1; } }
+
+/* ── 四格布局 ── */
+#grid {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+  padding: 4px;
+  flex: 1;
+  min-height: 0;
+}
+
+.panel {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+.panel-title {
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #8b949e;
+  letter-spacing: .05em;
+  background: #0d1117;
+  border-bottom: 1px solid #30363d;
+  flex-shrink: 0;
+  user-select: none;
+}
+.panel-title span { color: #58a6ff; }
+
+/* ── 面板 1: 3D ── */
+#panel1 { grid-row: 1; grid-column: 1; }
+#canvas3d {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+  cursor: grab;
+}
+#canvas3d:active { cursor: grabbing; }
+
+/* ── 面板 2: 2D ── */
+#panel2 { grid-row: 2; grid-column: 1; }
+#wrap2d {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  cursor: crosshair;
+}
+#canvas2d {
+  position: absolute;
+  top: 0; left: 0;
+  image-rendering: pixelated;
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+#hud2d {
+  position: absolute;
+  bottom: 6px;
+  left: 8px;
+  font-size: 10px;
+  color: #8b949e;
+  pointer-events: none;
+  text-shadow: 0 1px 3px #0005;
+}
+#colorbar-wrap {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  pointer-events: none;
+}
+#colorbar-canvas { border-radius: 2px; }
+.cb-label { font-size: 10px; color: #8b949e; }
+
+/* ── 面板 3: 参数 ── */
+#panel3 { grid-row: 1; grid-column: 2; overflow-y: auto; }
+#panel3 .body { padding: 10px 12px; display: flex; flex-direction: column; gap: 12px; }
+
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label {
+  font-size: 11px;
+  color: #8b949e;
+  font-weight: 500;
+}
+.form-group select,
+.form-group input[type=range],
+.form-group input[type=number] {
+  width: 100%;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  color: #c9d1d9;
+  padding: 4px 6px;
+  font-size: 12px;
+  outline: none;
+}
+.form-group select:focus,
+.form-group input:focus { border-color: #1f6feb; }
+.form-group input[type=range] {
+  padding: 0;
+  height: 20px;
+  cursor: pointer;
+  accent-color: #1f6feb;
+}
+.range-row { display: flex; align-items: center; gap: 6px; }
+.range-row input[type=range] { flex: 1; }
+.range-val {
+  min-width: 42px;
+  text-align: right;
+  font-size: 11px;
+  color: #58a6ff;
+  font-variant-numeric: tabular-nums;
+}
+
+.divider {
+  border: none;
+  border-top: 1px solid #30363d;
+  margin: 2px 0;
+}
+
+.color-swatches {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.swatch {
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: border-color .15s;
+  position: relative;
+  overflow: hidden;
+}
+.swatch.active { border-color: #58a6ff; }
+.swatch span {
+  position: absolute;
+  bottom: 2px;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 9px;
+  color: #fff;
+  text-shadow: 0 1px 3px #000a;
+  pointer-events: none;
+}
+
+.btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 500;
+  transition: opacity .15s;
+}
+.btn:hover { opacity: .85; }
+.btn-primary { background: #1f6feb; color: #fff; width: 100%; }
+.btn-secondary { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+.checkbox-row input { accent-color: #1f6feb; cursor: pointer; }
+
+/* ── 面板 4: 导出 ── */
+#panel4 { grid-row: 2; grid-column: 2; overflow-y: auto; }
+#panel4 .body { padding: 10px 12px; display: flex; flex-direction: column; gap: 10px; }
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 8px;
+}
+.stat-item { display: flex; flex-direction: column; gap: 1px; }
+.stat-label { font-size: 10px; color: #8b949e; }
+.stat-value { font-size: 13px; font-weight: 600; color: #58a6ff; font-variant-numeric: tabular-nums; }
+
+.export-btns { display: flex; flex-direction: column; gap: 6px; }
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: #21262d;
+  border: 1px solid #30363d;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #c9d1d9;
+  transition: background .15s;
+}
+.export-btn:hover { background: #30363d; }
+.export-btn svg { flex-shrink: 0; }
+
+/* ── 空状态 ── */
+#empty-state {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #30363d;
+  font-size: 13px;
+  pointer-events: none;
+}
+#empty-state svg { opacity: .3; }
+</style>
+</head>
+<body>
+
+<!-- 顶栏 -->
+<div id="topbar">
+  <h1>▣ DSM 八叉树地图可视化</h1>
+  <div class="sep"></div>
+  <span id="loading-badge">⟳ 加载中</span>
+  <span id="status-bar">就绪 — 请在右侧选择参数并点击「应用」</span>
+</div>
+
+<!-- 四格 -->
+<div id="grid">
+
+  <!-- 面板 1：3D 视图 -->
+  <div class="panel" id="panel1">
+    <div class="panel-title"><span>①</span> 三维八叉树可视化</div>
+    <canvas id="canvas3d"></canvas>
+    <div id="empty-state" id="empty3d">
+      <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M21 16.5c0 .38-.21.71-.53.88l-7.9 4.44c-.16.09-.34.14-.53.14-.19 0-.37-.05-.53-.14l-7.9-4.44A1 1 0 0 1 3 16.5v-9c0-.38.21-.71.53-.88l7.9-4.44c.32-.18.74-.18 1.06 0l7.9 4.44c.32.17.53.5.53.88v9z"/>
+      </svg>
+      暂无数据 — 点击「应用」加载
+    </div>
+  </div>
+
+  <!-- 面板 3：参数 -->
+  <div class="panel" id="panel3">
+    <div class="panel-title"><span>③</span> 参数设置</div>
+    <div class="body">
+
+      <div class="form-group">
+        <label>TIF 文件</label>
+        <select id="sel-file"></select>
+      </div>
+
+      <hr class="divider">
+
+      <div class="form-group">
+        <label>分辨率 (降采样粒度)</label>
+        <div class="range-row">
+          <input type="range" id="rng-res" min="2" max="100" step="1" value="20">
+          <span class="range-val" id="val-res">20 m</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>八叉树最小叶节点尺寸</label>
+        <div class="range-row">
+          <input type="range" id="rng-msize" min="1" max="200" step="1" value="20">
+          <span class="range-val" id="val-msize">20 m</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Z 高度缩放</label>
+        <div class="range-row">
+          <input type="range" id="rng-zscale" min="0.1" max="5" step="0.1" value="1.0">
+          <span class="range-val" id="val-zscale">1.0×</span>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="form-group">
+        <label>配色方案</label>
+        <div class="color-swatches">
+          <div class="swatch active" data-scheme="terrain" id="sw-terrain"><span>地形</span></div>
+          <div class="swatch" data-scheme="viridis"  id="sw-viridis"><span>Viridis</span></div>
+          <div class="swatch" data-scheme="inferno"  id="sw-inferno"><span>Inferno</span></div>
+          <div class="swatch" data-scheme="gray"     id="sw-gray"   ><span>灰度</span></div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <label class="checkbox-row">
+        <input type="checkbox" id="chk-grid" checked>
+        显示地面网格
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="chk-wireframe">
+        线框模式
+      </label>
+      <label class="checkbox-row">
+        <input type="checkbox" id="chk-fog" checked>
+        深度雾效
+      </label>
+
+      <hr class="divider">
+
+      <button class="btn btn-primary" id="btn-apply">▶ 应用参数</button>
+    </div>
+  </div>
+
+  <!-- 面板 2：俯视图 -->
+  <div class="panel" id="panel2">
+    <div class="panel-title"><span>②</span> 俯视图（高程热图）&nbsp;— 滚轮缩放 / 拖拽平移</div>
+    <div id="wrap2d">
+      <canvas id="canvas2d"></canvas>
+      <div id="hud2d">—</div>
+      <div id="colorbar-wrap">
+        <div class="cb-label" id="cb-max">—</div>
+        <canvas id="colorbar-canvas" width="12" height="120"></canvas>
+        <div class="cb-label" id="cb-min">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 面板 4：导出 -->
+  <div class="panel" id="panel4">
+    <div class="panel-title"><span>④</span> 统计 &amp; 导出</div>
+    <div class="body">
+
+      <div class="stats-grid">
+        <div class="stat-item">
+          <div class="stat-label">文件</div>
+          <div class="stat-value" id="st-file">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">分辨率</div>
+          <div class="stat-value" id="st-res">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">网格尺寸</div>
+          <div class="stat-value" id="st-grid">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">节点数</div>
+          <div class="stat-value" id="st-nodes">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">高程范围</div>
+          <div class="stat-value" id="st-zrange">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">加载耗时</div>
+          <div class="stat-value" id="st-elapsed">—</div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="export-btns">
+        <button class="export-btn" id="btn-exp3d">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#58a6ff"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          导出三维视图 PNG
+        </button>
+        <button class="export-btn" id="btn-exp2d">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#58a6ff"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+          导出俯视图 PNG
+        </button>
+        <button class="export-btn" id="btn-expjson">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#3fb950"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6"/></svg>
+          导出八叉树 JSON
+        </button>
+        <button class="export-btn" id="btn-expcsv">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="#3fb950"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z M14 2v6h6"/></svg>
+          导出高程 CSV
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div><!-- #grid -->
+
+<!-- Three.js via importmap -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.158.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.158.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ════════════════════════════════════════════════════════════════════
+//  色彩映射
+// ════════════════════════════════════════════════════════════════════
+
+function lerpC(a, b, t) {
+  return [a[0]+(b[0]-a[0])*t, a[1]+(b[1]-a[1])*t, a[2]+(b[2]-a[2])*t];
+}
+
+const CMAPS = {
+  terrain: [
+    [0.00, [0.08,0.18,0.50]],
+    [0.18, [0.16,0.52,0.24]],
+    [0.45, [0.52,0.43,0.22]],
+    [0.72, [0.65,0.63,0.60]],
+    [1.00, [0.98,0.98,1.00]],
+  ],
+  viridis: [
+    [0.00, [0.267,0.005,0.329]],
+    [0.25, [0.229,0.322,0.546]],
+    [0.50, [0.128,0.567,0.551]],
+    [0.75, [0.369,0.788,0.382]],
+    [1.00, [0.993,0.906,0.144]],
+  ],
+  inferno: [
+    [0.00, [0.001,0.000,0.014]],
+    [0.25, [0.258,0.038,0.406]],
+    [0.50, [0.576,0.149,0.404]],
+    [0.75, [0.902,0.431,0.143]],
+    [1.00, [0.988,1.000,0.644]],
+  ],
+  gray: [
+    [0.00, [0.05,0.05,0.05]],
+    [1.00, [0.95,0.95,0.95]],
+  ],
+};
+
+function sampleCmap(scheme, t) {
+  t = Math.max(0, Math.min(1, t));
+  const stops = CMAPS[scheme] || CMAPS.terrain;
+  for (let i = 1; i < stops.length; i++) {
+    if (t <= stops[i][0]) {
+      const lt = (t - stops[i-1][0]) / (stops[i][0] - stops[i-1][0]);
+      return lerpC(stops[i-1][1], stops[i][1], lt);
+    }
+  }
+  return stops[stops.length-1][1];
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  Three.js 初始化
+// ════════════════════════════════════════════════════════════════════
+
+const panel1   = document.getElementById('panel1');
+const cnv3d    = document.getElementById('canvas3d');
+const renderer = new THREE.WebGLRenderer({ canvas: cnv3d, antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setClearColor(0x0d1117);
+renderer.shadowMap.enabled = true;
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(55, 1, 0.1, 2e6);
+
+const controls = new OrbitControls(camera, cnv3d);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.screenSpacePanning = false;
+controls.minDistance = 10;
+controls.maxPolarAngle = Math.PI / 2.05;
+
+// 灯光
+const ambLight = new THREE.AmbientLight(0x404060, 1.5);
+scene.add(ambLight);
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.8);
+dirLight.position.set(1, 2.5, 1.5);
+scene.add(dirLight);
+const hemiLight = new THREE.HemisphereLight(0x8899aa, 0x334455, 0.6);
+scene.add(hemiLight);
+
+// 网格辅助线（按需显示）
+let gridHelper = null;
+
+// 场景对象
+let instancedMesh = null;
+let currentData   = null;
+let currentScheme = 'terrain';
+
+// 响应式 canvas 尺寸
+function onResize3D() {
+  const W = panel1.clientWidth;
+  const H = panel1.clientHeight - 30;
+  renderer.setSize(W, H);
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(onResize3D).observe(panel1);
+onResize3D();
+
+// 动画循环
+(function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+})();
+
+// ════════════════════════════════════════════════════════════════════
+//  构建 3D 八叉树场景
+// ════════════════════════════════════════════════════════════════════
+
+function buildScene(data, params) {
+  // 清理旧 mesh
+  if (instancedMesh) { scene.remove(instancedMesh); instancedMesh.geometry.dispose(); instancedMesh = null; }
+  if (gridHelper)    { scene.remove(gridHelper); gridHelper = null; }
+
+  const nodes   = data.nodes;
+  if (!nodes || nodes.length === 0) return;
+
+  const res     = data.res;
+  const zScale  = params.zScale;
+  const z_min   = data.meta.z_min;
+  const z_max   = data.meta.z_max;
+  const z_range = Math.max(1, z_max - z_min);
+  const scheme  = params.colorScheme;
+
+  // 地形范围（世界坐标）
+  const W_world = data.meta.grid[1] * res;
+  const H_world = data.meta.grid[0] * res;
+  const Z_world = z_range * zScale;
+
+  // 雾效
+  scene.fog = params.fog ? new THREE.Fog(0x0d1117, Z_world * 5, Math.max(W_world, H_world) * 3) : null;
+
+  // 地面网格
+  if (params.showGrid) {
+    const sz  = Math.max(W_world, H_world);
+    const div = Math.min(40, Math.round(sz / res / 5));
+    gridHelper = new THREE.GridHelper(sz * 1.2, div, 0x1f6feb, 0x21262d);
+    gridHelper.position.set(W_world / 2, -0.5, -H_world / 2);
+    scene.add(gridHelper);
+  }
+
+  // InstancedMesh
+  const geo = new THREE.BoxGeometry(1, 1, 1);
+  const mat = new THREE.MeshLambertMaterial({ wireframe: params.wireframe });
+
+  const mesh = new THREE.InstancedMesh(geo, mat, nodes.length);
+  mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+
+  const matrix = new THREE.Matrix4();
+  const color  = new THREE.Color();
+  const _s     = new THREE.Vector3();
+  const _p     = new THREE.Vector3();
+  const _q     = new THREE.Quaternion();
+
+  nodes.forEach((n, i) => {
+    const [gx, gy, gs, z_lo, z_md, z_hi] = n;
+    const sx = gs * res;
+    const sy = Math.max(0.5, (z_hi - z_lo) * zScale);
+    const sz = gs * res;
+
+    const cx = (gx + gs / 2) * res;
+    const cy = ((z_lo + z_hi) / 2 - z_min) * zScale;
+    const cz = -(gy + gs / 2) * res;
+
+    _s.set(sx, sy, sz);
+    _p.set(cx, cy, cz);
+    matrix.compose(_p, _q, _s);
+    mesh.setMatrixAt(i, matrix);
+
+    const t = (z_md - z_min) / z_range;
+    const [r, g, b] = sampleCmap(scheme, t);
+    color.setRGB(r, g, b);
+    mesh.setColorAt(i, color);
+  });
+
+  mesh.instanceMatrix.needsUpdate = true;
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+
+  scene.add(mesh);
+  instancedMesh = mesh;
+
+  // 相机定位
+  const midX  = W_world / 2;
+  const midZ  = -H_world / 2;
+  const dist  = Math.max(W_world, H_world) * 0.9;
+  const camY  = Z_world * 1.2 + dist * 0.5;
+  camera.position.set(midX + dist * 0.55, camY, midZ + dist * 0.6);
+  controls.target.set(midX, Z_world * 0.25, midZ);
+  controls.update();
+
+  // 隐藏空状态提示
+  document.getElementById('empty-state').style.display = 'none';
+}
+
+// 仅刷新配色（不重新请求数据）
+function refreshColors(scheme) {
+  if (!instancedMesh || !currentData) return;
+  const { meta, nodes } = currentData;
+  const z_min  = meta.z_min;
+  const z_max  = meta.z_max;
+  const z_range = Math.max(1, z_max - z_min);
+  const color  = new THREE.Color();
+  nodes.forEach((n, i) => {
+    const t = (n[4] - z_min) / z_range;
+    const [r, g, b] = sampleCmap(scheme, t);
+    color.setRGB(r, g, b);
+    instancedMesh.setColorAt(i, color);
+  });
+  instancedMesh.instanceColor.needsUpdate = true;
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  俯视图 Canvas（面板 2）
+// ════════════════════════════════════════════════════════════════════
+
+const wrap2d  = document.getElementById('wrap2d');
+const cnv2d   = document.getElementById('canvas2d');
+const hud2d   = document.getElementById('hud2d');
+const ctx2d   = cnv2d.getContext('2d');
+
+let view2d = { tx: 0, ty: 0, scale: 1, dragging: false, lastX: 0, lastY: 0 };
+let hmData = null;   // { pixels: ImageData, w, h, z_min, z_max }
+
+function build2D(data, scheme) {
+  const hm    = data.hm;
+  const [H, W] = data.hm_shape;
+  const z_min = data.meta.z_min;
+  const z_max = data.meta.z_max;
+  const z_range = Math.max(1, z_max - z_min);
+
+  cnv2d.width  = W;
+  cnv2d.height = H;
+
+  const img = ctx2d.createImageData(W, H);
+  const d   = img.data;
+
+  for (let y = 0; y < H; y++) {
+    const row = hm[y];
+    for (let x = 0; x < W; x++) {
+      const v = row[x];
+      const i = (y * W + x) * 4;
+      if (v === null) {
+        d[i]=18; d[i+1]=18; d[i+2]=25; d[i+3]=255;
+      } else {
+        const t = (v - z_min) / z_range;
+        const [r, g, b] = sampleCmap(scheme, t);
+        d[i]   = r * 255 | 0;
+        d[i+1] = g * 255 | 0;
+        d[i+2] = b * 255 | 0;
+        d[i+3] = 255;
+      }
+    }
+  }
+  ctx2d.putImageData(img, 0, 0);
+  hmData = { w: W, h: H, z_min, z_max, hm };
+
+  // 初始缩放：填满容器
+  fitView2D();
+  drawColorbar(scheme, z_min, z_max);
+}
+
+function fitView2D() {
+  if (!hmData) return;
+  const cw = wrap2d.clientWidth;
+  const ch = wrap2d.clientHeight;
+  const scale = Math.min(cw / hmData.w, ch / hmData.h) * 0.95;
+  view2d.scale = scale;
+  view2d.tx = (cw - hmData.w * scale) / 2;
+  view2d.ty = (ch - hmData.h * scale) / 2;
+  applyView2D();
+}
+
+function applyView2D() {
+  cnv2d.style.transform = `translate(${view2d.tx}px,${view2d.ty}px) scale(${view2d.scale})`;
+}
+
+// 鼠标事件
+wrap2d.addEventListener('wheel', e => {
+  e.preventDefault();
+  const f    = e.deltaY < 0 ? 1.12 : 1/1.12;
+  const rect = wrap2d.getBoundingClientRect();
+  const mx   = e.clientX - rect.left;
+  const my   = e.clientY - rect.top;
+  view2d.tx  = mx - (mx - view2d.tx) * f;
+  view2d.ty  = my - (my - view2d.ty) * f;
+  view2d.scale *= f;
+  applyView2D();
+}, { passive: false });
+
+wrap2d.addEventListener('mousedown', e => {
+  view2d.dragging = true;
+  view2d.lastX = e.clientX;
+  view2d.lastY = e.clientY;
+  wrap2d.style.cursor = 'grabbing';
+});
+window.addEventListener('mousemove', e => {
+  if (!view2d.dragging) {
+    // 显示当前位置高程
+    if (hmData) {
+      const rect = wrap2d.getBoundingClientRect();
+      const mx   = e.clientX - rect.left;
+      const my   = e.clientY - rect.top;
+      const gx   = Math.floor((mx - view2d.tx) / view2d.scale);
+      const gy   = Math.floor((my - view2d.ty) / view2d.scale);
+      if (gx >= 0 && gx < hmData.w && gy >= 0 && gy < hmData.h) {
+        const v = hmData.hm[gy][gx];
+        hud2d.textContent = v !== null ? `高程 ${v.toFixed(1)} m  (${gx}, ${gy})` : '无数据';
+      }
+    }
+    return;
+  }
+  view2d.tx += e.clientX - view2d.lastX;
+  view2d.ty += e.clientY - view2d.lastY;
+  view2d.lastX = e.clientX;
+  view2d.lastY = e.clientY;
+  applyView2D();
+});
+window.addEventListener('mouseup', () => {
+  view2d.dragging = false;
+  wrap2d.style.cursor = 'crosshair';
+});
+
+// 颜色条
+function drawColorbar(scheme, z_min, z_max) {
+  const cvs = document.getElementById('colorbar-canvas');
+  const cx  = cvs.getContext('2d');
+  const H   = cvs.height;
+  for (let i = 0; i < H; i++) {
+    const t = 1 - i / (H - 1);
+    const [r, g, b] = sampleCmap(scheme, t);
+    cx.fillStyle = `rgb(${r*255|0},${g*255|0},${b*255|0})`;
+    cx.fillRect(0, i, 12, 1);
+  }
+  document.getElementById('cb-max').textContent = `${z_max.toFixed(0)} m`;
+  document.getElementById('cb-min').textContent = `${z_min.toFixed(0)} m`;
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  颜色卡片预渲染
+// ════════════════════════════════════════════════════════════════════
+
+function renderSwatches() {
+  ['terrain','viridis','inferno','gray'].forEach(scheme => {
+    const el = document.getElementById(`sw-${scheme}`);
+    if (!el) return;
+    const cvs = document.createElement('canvas');
+    cvs.width  = el.offsetWidth || 64;
+    cvs.height = el.offsetHeight || 28;
+    const cx   = cvs.getContext('2d');
+    const grd  = cx.createLinearGradient(0, 0, cvs.width, 0);
+    for (let i = 0; i <= 10; i++) {
+      const t   = i / 10;
+      const [r, g, b] = sampleCmap(scheme, t);
+      grd.addColorStop(t, `rgb(${r*255|0},${g*255|0},${b*255|0})`);
+    }
+    cx.fillStyle = grd;
+    cx.fillRect(0, 0, cvs.width, cvs.height);
+    el.style.backgroundImage  = `url(${cvs.toDataURL()})`;
+    el.style.backgroundSize   = '100% 100%';
+    el.style.backgroundRepeat = 'no-repeat';
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════
+//  UI 控件绑定
+// ════════════════════════════════════════════════════════════════════
+
+function getParams() {
+  return {
+    file:        document.getElementById('sel-file').value,
+    res:         +document.getElementById('rng-res').value,
+    msize:       +document.getElementById('rng-msize').value,
+    zScale:      +document.getElementById('rng-zscale').value,
+    colorScheme: currentScheme,
+    showGrid:    document.getElementById('chk-grid').checked,
+    wireframe:   document.getElementById('chk-wireframe').checked,
+    fog:         document.getElementById('chk-fog').checked,
+  };
+}
+
+// 滑块实时标签
+function bindSlider(id, valId, fmt) {
+  const el = document.getElementById(id);
+  const vl = document.getElementById(valId);
+  el.addEventListener('input', () => { vl.textContent = fmt(+el.value); });
+}
+bindSlider('rng-res',    'val-res',    v => `${v} m`);
+bindSlider('rng-msize',  'val-msize',  v => `${v} m`);
+bindSlider('rng-zscale', 'val-zscale', v => `${v.toFixed(1)}×`);
+
+// 配色卡点击
+document.querySelectorAll('.swatch').forEach(sw => {
+  sw.addEventListener('click', () => {
+    document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+    sw.classList.add('active');
+    currentScheme = sw.dataset.scheme;
+    // 实时刷新颜色，无需重新请求
+    if (currentData) {
+      refreshColors(currentScheme);
+      build2D(currentData, currentScheme);
+      drawColorbar(currentScheme, currentData.meta.z_min, currentData.meta.z_max);
+    }
+  });
+});
+
+// 线框 / 雾效 / 网格 实时更新
+document.getElementById('chk-wireframe').addEventListener('change', () => {
+  if (instancedMesh) instancedMesh.material.wireframe = document.getElementById('chk-wireframe').checked;
+});
+document.getElementById('chk-fog').addEventListener('change', () => {
+  if (currentData) {
+    const { z_max, z_min, grid } = currentData.meta;
+    const res = currentData.res;
+    if (document.getElementById('chk-fog').checked) {
+      const z = (z_max - z_min) * +document.getElementById('rng-zscale').value;
+      const m = Math.max(grid[1], grid[0]) * res;
+      scene.fog = new THREE.Fog(0x0d1117, z * 5, m * 3);
+    } else {
+      scene.fog = null;
+    }
+  }
+});
+document.getElementById('chk-grid').addEventListener('change', () => {
+  if (gridHelper) { scene.remove(gridHelper); gridHelper = null; }
+  if (document.getElementById('chk-grid').checked && currentData) {
+    buildScene(currentData, getParams());  // 重建场景
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  数据加载
+// ════════════════════════════════════════════════════════════════════
+
+function setLoading(on) {
+  document.getElementById('loading-badge').style.display = on ? 'block' : 'none';
+}
+function setStatus(msg) {
+  document.getElementById('status-bar').textContent = msg;
+}
+
+async function loadFiles() {
+  const sel = document.getElementById('sel-file');
+  try {
+    const files = await fetch('/files').then(r => r.json());
+    sel.innerHTML = files.map(f => `<option value="${f}">${f}</option>`).join('');
+  } catch {
+    sel.innerHTML = '<option>（无文件）</option>';
+  }
+}
+
+async function loadData() {
+  const p = getParams();
+  if (!p.file) { setStatus('请先选择 TIF 文件'); return; }
+
+  setLoading(true);
+  setStatus('正在读取 TIF 并构建八叉树…');
+  try {
+    const url  = `/data?file=${encodeURIComponent(p.file)}&res=${p.res}&msize=${p.msize}`;
+    const data = await fetch(url).then(r => r.json());
+    if (data.error) { setStatus(`错误: ${data.error}`); return; }
+
+    currentData = data;
+    buildScene(data, p);
+    build2D(data, p.colorScheme);
+    updateStats(data.meta);
+    setStatus(`加载完成 — ${data.meta.nodes.toLocaleString()} 个节点 | ${data.meta.elapsed_s}s`);
+  } catch (err) {
+    setStatus(`请求失败: ${err.message}`);
+    console.error(err);
+  } finally {
+    setLoading(false);
+  }
+}
+
+function updateStats(meta) {
+  document.getElementById('st-file').textContent    = meta.file;
+  document.getElementById('st-res').textContent     = `${meta.res} m`;
+  document.getElementById('st-grid').textContent    = `${meta.grid[1]}×${meta.grid[0]}`;
+  const nodesStr = meta.nodes.toLocaleString() + (meta.truncated ? ' ⚠️截断' : '');
+  document.getElementById('st-nodes').textContent   = nodesStr;
+  document.getElementById('st-zrange').textContent  = `${meta.z_min.toFixed(0)}–${meta.z_max.toFixed(0)} m`;
+  document.getElementById('st-elapsed').textContent = `${meta.elapsed_s} s`;
+}
+
+document.getElementById('btn-apply').addEventListener('click', loadData);
+
+// ════════════════════════════════════════════════════════════════════
+//  导出
+// ════════════════════════════════════════════════════════════════════
+
+function download(url, name) {
+  const a  = document.createElement('a');
+  a.href   = url;
+  a.download = name;
+  a.click();
+}
+
+document.getElementById('btn-exp3d').addEventListener('click', () => {
+  renderer.render(scene, camera);          // 确保帧已绘制
+  download(cnv3d.toDataURL('image/png'), 'octree_3d.png');
+});
+
+document.getElementById('btn-exp2d').addEventListener('click', () => {
+  if (!hmData) return;
+  // 创建全尺寸 canvas 导出
+  const tmp  = document.createElement('canvas');
+  tmp.width  = hmData.w;
+  tmp.height = hmData.h;
+  tmp.getContext('2d').drawImage(cnv2d, 0, 0);
+  download(tmp.toDataURL('image/png'), 'octree_topview.png');
+});
+
+document.getElementById('btn-expjson').addEventListener('click', () => {
+  if (!currentData) return;
+  const blob = new Blob([JSON.stringify({
+    meta:  currentData.meta,
+    nodes: currentData.nodes,
+  }, null, 2)], { type: 'application/json' });
+  download(URL.createObjectURL(blob), 'octree_nodes.json');
+});
+
+document.getElementById('btn-expcsv').addEventListener('click', () => {
+  if (!currentData) return;
+  const rows  = ['gx,gy,gs,z_lo,z_mid,z_hi'];
+  currentData.nodes.forEach(n => rows.push(n.join(',')));
+  const blob  = new Blob([rows.join('\n')], { type: 'text/csv' });
+  download(URL.createObjectURL(blob), 'octree_nodes.csv');
+});
+
+// ════════════════════════════════════════════════════════════════════
+//  初始化
+// ════════════════════════════════════════════════════════════════════
+
+window.addEventListener('load', async () => {
+  await loadFiles();
+  renderSwatches();
+  // 自动加载第一个文件
+  if (document.getElementById('sel-file').value) {
+    await loadData();
+  }
+});
+</script>
+</body>
+</html>
