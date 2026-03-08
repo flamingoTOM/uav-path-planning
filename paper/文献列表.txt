@@ -12,7 +12,13 @@
 [15]	Gabriely Y, Rimon E. Spanning-Tree Based Coverage of Continuous Areas by a Mobile Robot[J]. Annals of Mathematics and Artificial Intelligence, 2003, 37(1–2): 77–98.
 [16]	Wu, W., Wang, Z., Lin, L. et al. An efficient coverage path planning method for UAV in complex concave regions. Sci Rep 15, 37227 (2025). 
 [17]	Z.L. Cao, Y. Huang, E.L. Hall, Region filling operations with random obstacle avoidance for mobile robotics, Journal of Robotic Systems 5 (2) (1988) 87–102.
+
+
+8
 [18]	Galceran E, Carreras M. A survey on coverage path planning for robotics[J]. Robotics and Autonomous Systems, 2013, 61(12): 1258-1276.
+
+
+
 [19]	Liu S, Mohta K, Atanasov N, et al. Planning Dynamically Feasible Trajectories for Quadrotors Using Safe Flight Corridors in 3D Complex Environments[C]//ICRA, 2017.
 
 [20]	Gao F, Lin Y, Shen S. Online Safe Trajectory Generation for Quadrotors Using B-splines[C]// IEEE International Conference on Robotics and Automation (ICRA). 2018.
