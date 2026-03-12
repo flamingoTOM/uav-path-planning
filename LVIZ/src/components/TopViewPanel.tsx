@@ -264,12 +264,12 @@ const TopViewPanel: React.FC<TopViewPanelProps> = ({ terrainData, settings, onSe
       <div className="panel-header">
         <h3>
           <EyeOutlined style={{ marginRight: 6 }} />
-          Top View (Fixed Aspect Ratio)
+          俯视图
         </h3>
 
         {/* Display Options in Header */}
         <Space size={8}>
-          <Tooltip title="Compass">
+          <Tooltip title="指北针">
             <CompassOutlined
               style={{
                 fontSize: 16,
@@ -280,7 +280,7 @@ const TopViewPanel: React.FC<TopViewPanelProps> = ({ terrainData, settings, onSe
               onClick={() => onSettingsChange?.({ showCompass: !settings.showCompass })}
             />
           </Tooltip>
-          <Tooltip title="Scale Bar">
+          <Tooltip title="比例尺">
             <AimOutlined
               style={{
                 fontSize: 16,
@@ -291,7 +291,7 @@ const TopViewPanel: React.FC<TopViewPanelProps> = ({ terrainData, settings, onSe
               onClick={() => onSettingsChange?.({ showScale: !settings.showScale })}
             />
           </Tooltip>
-          <Tooltip title="Contours">
+          <Tooltip title="等高线">
             <ColumnHeightOutlined
               style={{
                 fontSize: 16,
@@ -302,7 +302,7 @@ const TopViewPanel: React.FC<TopViewPanelProps> = ({ terrainData, settings, onSe
               onClick={() => onSettingsChange?.({ showContours: !settings.showContours })}
             />
           </Tooltip>
-          <Tooltip title="Grid">
+          <Tooltip title="网格">
             <BorderOutlined
               style={{
                 fontSize: 16,
@@ -336,12 +336,13 @@ const TopViewPanel: React.FC<TopViewPanelProps> = ({ terrainData, settings, onSe
           <div className="empty-panel">
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No elevation data. Please import a .tif file"
+              description="暂无高程数据，请导入 TIF 文件"
             />
           </div>
         ) : (
           <>
             <canvas
+              id="topview-canvas"
               ref={canvasRef}
               style={{
                 display: 'block',

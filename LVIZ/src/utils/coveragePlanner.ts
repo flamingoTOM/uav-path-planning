@@ -1,13 +1,13 @@
 /**
  * Coverage Path Planning Algorithm
- * 全覆盖路径规划算法
+ * 全覆盖路径规划算法 (Boustrophedon / Lawn-mower pattern)
  */
 
 export interface CoverageParams {
-  flightHeight: number;      // 飞行高度 (m)
+  minAltitude: number;        // 防低高度 / terrain clearance (m)
   coverageWidth: number;      // 覆盖宽度 (m)
   overlapRate: number;        // 重叠率 (0-1)
-  terrainFollowing: boolean;  // 是否仿地飞行
+  terrainFollowing: boolean;  // 仿地飞行
 }
 
 export interface PathPoint {
@@ -28,130 +28,144 @@ export interface CoverageResult {
   statistics: {
     totalDistance: number;
     totalLines: number;
-    coverageArea: number;
-    estimatedTime: number;
+    coverageAreaM2: number;   // 覆盖面积 m²
+    estimatedTime: number;    // 预计飞行时间 s
+    waypointCount: number;    // 航点数量
+    planMinAlt: number;       // 最低飞行高度 m
+    planMaxAlt: number;       // 最高飞行高度 m
+    lineSpacing: number;      // 航线间距 m
   };
 }
 
+/** Ray-casting point-in-polygon test */
+function pointInPolygon(
+  px: number,
+  py: number,
+  polygon: { x: number; y: number }[]
+): boolean {
+  let inside = false;
+  for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+    const xi = polygon[i].x, yi = polygon[i].y;
+    const xj = polygon[j].x, yj = polygon[j].y;
+    const intersect =
+      yi > py !== yj > py &&
+      px < ((xj - xi) * (py - yi)) / (yj - yi) + xi;
+    if (intersect) inside = !inside;
+  }
+  return inside;
+}
+
 /**
- * Generate coverage path for selected region
+ * Generate boustrophedon coverage path for a polygon region.
+ * @param terrainData   - loaded terrain data (width, height, elevationData, minElevation, maxElevation)
+ * @param polygonCanvas - polygon vertices in canvas pixel coordinates
+ * @param canvasWidth   - canvas width in pixels
+ * @param canvasHeight  - canvas height in pixels
+ * @param params        - coverage planning parameters
  */
 export function generateCoveragePath(
   terrainData: any,
-  region: { x1: number; y1: number; x2: number; y2: number },
+  polygonCanvas: { x: number; y: number }[],
+  canvasWidth: number,
+  canvasHeight: number,
   params: CoverageParams
 ): CoverageResult {
-  const { elevationData, width, height, minElevation, maxElevation } = terrainData;
-  const { flightHeight, coverageWidth, overlapRate, terrainFollowing } = params;
+  const { elevationData, width, height, minElevation } = terrainData;
+  const { minAltitude, coverageWidth, overlapRate, terrainFollowing } = params;
 
-  // Convert canvas coordinates to data coordinates
-  const canvas = document.querySelector('canvas');
-  if (!canvas) throw new Error('Canvas not found');
+  // Scale: terrain data pixels per canvas pixel
+  const scaleX = width / canvasWidth;
+  const scaleY = height / canvasHeight;
 
-  const canvasWidth = canvas.width;
-  const canvasHeight = canvas.height;
+  // Convert polygon to terrain data coordinates
+  const polyTerrain = polygonCanvas.map((p) => ({
+    x: p.x * scaleX,
+    y: p.y * scaleY,
+  }));
 
-  const x1 = Math.floor((region.x1 / canvasWidth) * width);
-  const y1 = Math.floor((region.y1 / canvasHeight) * height);
-  const x2 = Math.ceil((region.x2 / canvasWidth) * width);
-  const y2 = Math.ceil((region.y2 / canvasHeight) * height);
+  // Bounding box in terrain coords
+  const xs = polyTerrain.map((p) => p.x);
+  const ys = polyTerrain.map((p) => p.y);
+  const x1 = Math.max(0, Math.floor(Math.min(...xs)));
+  const y1 = Math.max(0, Math.floor(Math.min(...ys)));
+  const x2 = Math.min(width - 1, Math.ceil(Math.max(...xs)));
+  const y2 = Math.min(height - 1, Math.ceil(Math.max(...ys)));
 
-  const regionWidth = x2 - x1;
-  const regionHeight = y2 - y1;
-
-  // Calculate line spacing based on coverage width and overlap
+  // Line spacing (terrain pixels ≈ meters assuming 1px = 1m)
   const lineSpacing = Math.max(1, Math.floor(coverageWidth * (1 - overlapRate)));
 
-  // Generate boustrophedon (zigzag) path
   const path: PathPoint[] = [];
   let totalDistance = 0;
-  let direction = 1; // 1 for right, -1 for left
+  let direction = 1;
+  let lineCount = 0;
 
-  for (let y = y1; y < y2; y += lineSpacing) {
-    if (direction === 1) {
-      // Left to right
-      for (let x = x1; x <= x2; x++) {
-        const idx = Math.min(y * width + x, elevationData.length - 1);
-        const terrainAlt = elevationData[idx] || minElevation;
-
-        const altitude = terrainFollowing
-          ? terrainAlt + flightHeight
-          : flightHeight;
-
-        if (path.length > 0) {
-          const prev = path[path.length - 1];
-          const dx = x - prev.x;
-          const dy = y - prev.y;
-          totalDistance += Math.sqrt(dx * dx + dy * dy);
-        }
-
-        path.push({
-          x,
-          y,
-          altitude,
-          distance: totalDistance,
-        });
-      }
-    } else {
-      // Right to left
-      for (let x = x2; x >= x1; x--) {
-        const idx = Math.min(y * width + x, elevationData.length - 1);
-        const terrainAlt = elevationData[idx] || minElevation;
-
-        const altitude = terrainFollowing
-          ? terrainAlt + flightHeight
-          : flightHeight;
-
-        if (path.length > 0) {
-          const prev = path[path.length - 1];
-          const dx = x - prev.x;
-          const dy = y - prev.y;
-          totalDistance += Math.sqrt(dx * dx + dy * dy);
-        }
-
-        path.push({
-          x,
-          y,
-          altitude,
-          distance: totalDistance,
-        });
+  for (let y = y1; y <= y2; y += lineSpacing) {
+    // Collect points on this scanline inside the polygon
+    const rowPoints: { x: number; y: number }[] = [];
+    for (let x = x1; x <= x2; x++) {
+      if (pointInPolygon(x + 0.5, y + 0.5, polyTerrain)) {
+        rowPoints.push({ x, y });
       }
     }
+    if (rowPoints.length === 0) continue;
 
-    direction *= -1; // Alternate direction
+    if (direction === -1) rowPoints.reverse();
+    lineCount++;
+
+    for (const pt of rowPoints) {
+      const idx = Math.min(
+        Math.round(pt.y) * width + Math.round(pt.x),
+        elevationData.length - 1
+      );
+      const terrainAlt = (elevationData[idx] as number) || minElevation;
+      const altitude = terrainFollowing ? terrainAlt + minAltitude : minAltitude;
+
+      if (path.length > 0) {
+        const prev = path[path.length - 1];
+        const dx = pt.x - prev.x;
+        const dy = pt.y - prev.y;
+        totalDistance += Math.sqrt(dx * dx + dy * dy);
+      }
+
+      path.push({ x: pt.x, y: pt.y, altitude, distance: totalDistance });
+    }
+
+    direction *= -1;
   }
 
-  // Generate altitude profile
-  const distances: number[] = [];
-  const altitudes: number[] = [];
-  let minAlt = Infinity;
-  let maxAlt = -Infinity;
+  // Altitude profile arrays
+  const distances = path.map((p) => p.distance);
+  const altitudes = path.map((p) => p.altitude);
+  const planMinAlt = altitudes.length > 0 ? Math.min(...altitudes) : minAltitude;
+  const planMaxAlt = altitudes.length > 0 ? Math.max(...altitudes) : minAltitude;
 
-  for (const point of path) {
-    distances.push(point.distance);
-    altitudes.push(point.altitude);
-    if (point.altitude < minAlt) minAlt = point.altitude;
-    if (point.altitude > maxAlt) maxAlt = point.altitude;
+  // Polygon area using shoelace formula in terrain coords (m²)
+  let polyArea = 0;
+  for (let i = 0, j = polyTerrain.length - 1; i < polyTerrain.length; j = i++) {
+    polyArea += polyTerrain[i].x * polyTerrain[j].y;
+    polyArea -= polyTerrain[j].x * polyTerrain[i].y;
   }
+  const coverageAreaM2 = Math.abs(polyArea) / 2;
 
-  // Calculate statistics
-  const totalLines = Math.ceil(regionHeight / lineSpacing);
-  const coverageArea = (regionWidth * regionHeight) / 100; // in km²
-  const estimatedTime = totalDistance / 10; // assuming 10 m/s speed, in seconds
+  const estimatedTime = totalDistance / 10; // assume 10 m/s cruise speed
 
   return {
     path,
     altitudeProfile: {
       distances,
       altitudes,
-      minAlt,
-      maxAlt,
+      minAlt: planMinAlt,
+      maxAlt: planMaxAlt,
     },
     statistics: {
       totalDistance,
-      totalLines,
-      coverageArea,
+      totalLines: lineCount,
+      coverageAreaM2,
       estimatedTime,
+      waypointCount: path.length,
+      planMinAlt,
+      planMaxAlt,
+      lineSpacing,
     },
   };
 }

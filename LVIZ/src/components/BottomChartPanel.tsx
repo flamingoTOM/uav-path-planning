@@ -124,17 +124,11 @@ const BottomChartPanel: React.FC<BottomChartPanelProps> = ({ pathData }) => {
     // Axis titles
     ctx.font = 'bold 14px Times New Roman';
     ctx.textAlign = 'center';
-    ctx.fillText('Distance', width / 2, height - 10);
-
-    ctx.save();
-    ctx.translate(15, height / 2);
-    ctx.rotate(-Math.PI / 2);
-    ctx.fillText('Flight Altitude', 0, 0);
-    ctx.restore();
+    ctx.fillText('距离 (m)', width / 2, height - 10);
 
     // Title
     ctx.font = 'bold 16px Times New Roman';
-    ctx.fillText('Distance - Flight Altitude Profile', width / 2, 20);
+    ctx.fillText('距离 — 飞行高度剖面', width / 2, 20);
   };
 
   const hasData = pathData && pathData.altitudeProfile;
@@ -144,7 +138,7 @@ const BottomChartPanel: React.FC<BottomChartPanelProps> = ({ pathData }) => {
       <div className="panel-header">
         <h3>
           <LineChartOutlined style={{ marginRight: 6 }} />
-          Flight Profile
+          飞行剖面
         </h3>
       </div>
       <div className="panel-content" style={{ padding: 0, background: '#FFFFFF' }}>
@@ -152,11 +146,12 @@ const BottomChartPanel: React.FC<BottomChartPanelProps> = ({ pathData }) => {
           <div className="empty-panel">
             <Empty
               image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No path data. Please run coverage planning first."
+              description="暂无路径数据，请先运行覆盖规划"
             />
           </div>
         ) : (
           <canvas
+            id="profile-canvas"
             ref={canvasRef}
             style={{
               width: '100%',
