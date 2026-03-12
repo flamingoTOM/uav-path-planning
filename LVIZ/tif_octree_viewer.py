@@ -16,12 +16,22 @@ import threading
 import webbrowser
 import time
 import math
+import cgi
+import io
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
 import numpy as np
 import rasterio
 from rasterio.enums import Resampling
+
+# 导入路径规划模块
+try:
+    from coverage_planner import CoveragePlanner
+except ImportError:
+    # 如果当前目录不在路径中，添加它
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    from coverage_planner import CoveragePlanner
 
 # ── 路径配置 ──────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -146,6 +156,15 @@ class Handler(BaseHTTPRequestHandler):
         else:
             self.send_error(404)
 
+    def do_POST(self):
+        parsed = urlparse(self.path)
+        if parsed.path == "/upload":
+            self._handle_upload()
+        elif parsed.path == "/plan":
+            self._handle_plan()
+        else:
+            self.send_error(404)
+
     # ── 路由实现 ──────────────────────────────────────────────────────────────
 
     def _serve_html(self):
@@ -197,6 +216,87 @@ class Handler(BaseHTTPRequestHandler):
             "res":      round(actual_res, 2),
         }
         self._json(resp)
+
+    def _handle_upload(self):
+        """处理 TIF 文件上传"""
+        content_type = self.headers.get('Content-Type')
+        if not content_type or 'multipart/form-data' not in content_type:
+            self._json({"error": "Invalid content type"})
+            return
+
+        # 解析 multipart 数据
+        form = cgi.FieldStorage(
+            fp=self.rfile,
+            headers=self.headers,
+            environ={
+                'REQUEST_METHOD': 'POST',
+                'CONTENT_TYPE': content_type,
+            }
+        )
+
+        if 'file' not in form:
+            self._json({"error": "No file uploaded"})
+            return
+
+        file_item = form['file']
+        if not file_item.filename:
+            self._json({"error": "Empty filename"})
+            return
+
+        # 验证文件扩展名
+        if not file_item.filename.lower().endswith(('.tif', '.tiff')):
+            self._json({"error": "Only .tif/.tiff files allowed"})
+            return
+
+        # 安全文件名（防止路径遍历）
+        safe_filename = os.path.basename(file_item.filename)
+        save_path = os.path.join(DSM_DIR, safe_filename)
+
+        # 保存文件
+        try:
+            with open(save_path, 'wb') as f:
+                f.write(file_item.file.read())
+            self._json({"success": True, "filename": safe_filename})
+        except Exception as e:
+            self._json({"error": str(e)})
+
+    def _handle_plan(self):
+        """处理路径规划请求"""
+        try:
+            content_len = int(self.headers.get('Content-Length', 0))
+            body = self.rfile.read(content_len)
+            req = json.loads(body.decode())
+
+            # 加载高程数据
+            fname = req['file']
+            fpath = os.path.join(DSM_DIR, fname)
+            if not os.path.isfile(fpath):
+                self._json({"error": f"File not found: {fname}"})
+                return
+
+            target_res = req.get('res', 20.0)
+            elev, actual_res = load_tif(fpath, target_res)
+
+            # 创建规划器
+            planner = CoveragePlanner(elev, actual_res)
+
+            # 执行规划
+            polygon = req['polygon']  # [[gx, gy], ...]
+            algorithm = req.get('algorithm', 'boustrophedon')
+            params = req.get('params', {})
+
+            result = planner.plan(
+                polygon=polygon,
+                algorithm=algorithm,
+                params=params
+            )
+
+            self._json(result)
+
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            self._json({"error": str(e)})
 
     # ── 响应工具 ──────────────────────────────────────────────────────────────
 

@@ -5,7 +5,7 @@ description: 根据 git diff 生成符合规范的 commit message。当用户需
 
 # Git Commit Helper
 
-这是一个初级示例 Skill，展示最基本的 Skill 结构和功能。
+
 
 ## 认证
 Github 平台的 api key: `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`
