@@ -1,0 +1,347 @@
+/* Times New Roman Font System */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Times New Roman', Times, serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #2C2C2C;
+}
+
+h1, h2, h3, h4, h5, h6,
+.ant-typography h1,
+.ant-typography h2,
+.ant-typography h3,
+.ant-typography h4,
+.ant-typography h5,
+.ant-typography h6 {
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: 600;
+}
+
+button,
+input,
+select,
+.ant-btn,
+.ant-input,
+.ant-select,
+.ant-tag,
+.ant-badge {
+  font-family: 'Times New Roman', Times, serif;
+}
+
+#root {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Panel Container - No Border Radius */
+.panel-container {
+  height: 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #FAFAFA;
+  overflow: hidden;
+  border: 1px solid #D0D0D0;
+}
+
+/* Gray theme for panel headers */
+.panel-header {
+  padding: 6px 12px;
+  background: linear-gradient(180deg, #F5F5F5 0%, #E8E8E8 100%);
+  border-bottom: 1px solid #D0D0D0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+  min-height: 32px;
+}
+
+.panel-header h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #333333;
+  display: flex;
+  align-items: center;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.panel-header .ant-badge {
+  color: #666666;
+}
+
+.panel-header .ant-badge-status-text {
+  color: #666666;
+  font-size: 11px;
+}
+
+/* Color Scheme selector in panel header */
+.panel-header .color-scheme-selector {
+  min-width: 110px;
+}
+
+.panel-content {
+  flex: 1;
+  padding: 12px;
+  overflow: auto;
+  background: #FFFFFF;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F5F5F5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CCCCCC;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #999999;
+}
+
+/* 3D Canvas - No Border Radius */
+.three-canvas-container {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1A1A1A 0%, #2E2E2E 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.three-canvas-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* Loading State */
+.loading-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  flex-direction: column;
+  gap: 16px;
+  color: #666666;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+/* Empty State */
+.empty-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #999999;
+  font-size: 13px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+/* Resizable Panels */
+[data-panel] {
+  overflow: hidden;
+}
+
+[data-panel-resize-handle] {
+  position: relative;
+  z-index: 10;
+}
+
+[data-panel-resize-handle]:hover,
+[data-panel-resize-handle]:active {
+  background: #888888 !important;
+}
+
+/* Ant Design Overrides - No Border Radius */
+.ant-input,
+.ant-input-number,
+.ant-select-selector {
+  border-radius: 0;
+  border-color: #D0D0D0;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 13px;
+}
+
+.ant-input:hover,
+.ant-input-number:hover,
+.ant-select:hover .ant-select-selector {
+  border-color: #888888;
+}
+
+.ant-input:focus,
+.ant-input-number:focus,
+.ant-select-focused .ant-select-selector {
+  border-color: #888888;
+  box-shadow: 0 0 0 2px rgba(136, 136, 136, 0.1);
+}
+
+/* Buttons - No Border Radius */
+.ant-btn {
+  border-radius: 0;
+  font-weight: 500;
+  font-family: 'Times New Roman', Times, serif;
+  height: 32px;
+  padding: 0 16px;
+}
+
+.ant-btn-primary {
+  background: linear-gradient(180deg, #777777 0%, #555555 100%);
+  border: 1px solid #444444;
+  color: #FFFFFF;
+}
+
+.ant-btn-primary:hover {
+  background: linear-gradient(180deg, #666666 0%, #444444 100%);
+}
+
+/* Tags - No Border Radius */
+.ant-tag {
+  border-radius: 0;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 2px 8px;
+}
+
+/* Typography */
+.ant-typography {
+  font-family: 'Times New Roman', Times, serif;
+}
+
+/* Canvas Overlays - No Border Radius */
+.canvas-overlay {
+  position: absolute;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #2C2C2C;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 4px 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* Compass - No Border Radius */
+.compass {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 50px;
+  height: 50px;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Times New Roman', Times, serif;
+  font-weight: 700;
+  font-size: 14px;
+  color: #555555;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  border: 2px solid #D0D0D0;
+}
+
+/* Scale Bar - No Border Radius */
+.scale-bar {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 6px 10px;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 11px;
+  font-weight: 500;
+  color: #2C2C2C;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid #D0D0D0;
+}
+
+.scale-bar-line {
+  width: 80px;
+  height: 2px;
+  background: #2C2C2C;
+  position: relative;
+}
+
+.scale-bar-line::before,
+.scale-bar-line::after {
+  content: '';
+  position: absolute;
+  width: 2px;
+  height: 6px;
+  background: #2C2C2C;
+  top: -2px;
+}
+
+.scale-bar-line::before {
+  left: 0;
+}
+
+.scale-bar-line::after {
+  right: 0;
+}
+
+/* Collapse Header Override */
+.ant-collapse-header {
+  padding: 6px 12px !important;
+  font-size: 12px !important;
+}
+
+/* Slider */
+.ant-slider-mark-text {
+  font-size: 10px;
+  font-family: 'Times New Roman', Times, serif;
+}
+
+/* Dropdown menu - No Border Radius */
+.ant-dropdown-menu {
+  border-radius: 0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.ant-dropdown-menu-item {
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 13px;
+}
+
+/* Select Dropdown - No Border Radius */
+.ant-select-dropdown {
+  border-radius: 0;
+}
+
+/* Icon Buttons in Top View Header */
+.icon-toggle {
+  font-size: 16px;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.icon-toggle.active {
+  color: #555555;
+}
+
+.icon-toggle.inactive {
+  color: #CCCCCC;
+}
+
+.icon-toggle:hover {
+  color: #333333;
+}

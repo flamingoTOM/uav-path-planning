@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "momenta-web-skill": {
+      "source": "mcp-hub.momenta.works",
+      "sourceType": "well-known",
+      "computedHash": "c520a9b6fa768775bc708e49eb4358e198892ea73cd085031c55e21db55f3d04"
+    }
+  }
+}
