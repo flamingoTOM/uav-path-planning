@@ -109,18 +109,20 @@ def run_custom_algorithm(data: dict) -> dict:
         params: {minAltitude, coverageWidth, overlapRate}
     }
     """
-    import importlib.util, os
+    import os
 
     script_path = data.get('scriptPath', '')
     if not script_path or not os.path.isfile(script_path):
         raise FileNotFoundError(f'Script not found: {script_path}')
 
-    # 动态加载用户模块
-    spec = importlib.util.spec_from_file_location('custom_algo', script_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # 用 exec 加载用户脚本（比 importlib 更稳定，避免长运行进程中的 spec 缓存问题）
+    script_path = os.path.abspath(script_path)
+    namespace = {'__file__': script_path, '__name__': 'custom_algo'}
+    with open(script_path, 'r', encoding='utf-8') as f:
+        source = f.read()
+    exec(compile(source, script_path, 'exec'), namespace)
 
-    if not hasattr(module, 'generate_path'):
+    if 'generate_path' not in namespace:
         raise AttributeError('Custom script must define generate_path(terrain_data, polygon, params)')
 
     width  = int(data['width'])
@@ -144,7 +146,7 @@ def run_custom_algorithm(data: dict) -> dict:
         'overlap_rate':   float(p.get('overlapRate',   0.2)),
     }
 
-    return module.generate_path(terrain_data, polygon, params)
+    return namespace['generate_path'](terrain_data, polygon, params)
 
 
 # ── HTTP 请求处理 ──────────────────────────────────────────────────────────────
